@@ -1,0 +1,155 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// 1. Ядро системи
+model Student {
+  id                  String               @id @default(uuid())
+  firstName           String
+  lastName            String
+  patronymic          String?
+  gender              String               // 'M' або 'F'
+  groupName           String
+  phone               String?
+  email               String?              @unique
+  photoUrl            String?
+  
+  // Зв'язки
+  placements          Placement[]
+  payments            Payment[]
+  documents           Document[]
+  maintenanceRequests MaintenanceRequest[]
+  violations          Violation[]
+
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+}
+
+model Room {
+  id                  String               @id @default(uuid())
+  number              String               @unique
+  floor               Int
+  capacity            Int
+  roomGender          String               // 'male', 'female', 'mixed', 'any'
+  status              String               @default("active") // 'active', 'repair'
+  
+  placements          Placement[]
+  maintenanceRequests MaintenanceRequest[]
+
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+}
+
+// 2. Зв'язуючі та історичні дані
+model Placement {
+  id             String    @id @default(uuid())
+  studentId      String
+  roomId         String
+  checkInDate    DateTime
+  checkOutDate   DateTime?
+  isCurrent      Boolean   @default(true)
+
+  student        Student   @relation(fields: [studentId], references: [id])
+  room           Room      @relation(fields: [roomId], references: [id])
+
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+}
+
+// 3. Фінанси та Документообіг
+model Payment {
+  id             String    @id @default(uuid())
+  studentId      String
+  amount         Decimal
+  billingPeriod  String
+  status         String    // 'paid', 'debt', 'warning'
+  dueDate        DateTime
+  paymentDate    DateTime?
+
+  student        Student   @relation(fields: [studentId], references: [id])
+
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+}
+
+model Document {
+  id             String    @id @default(uuid())
+  studentId      String
+  documentType   String    // 'passport', 'contract', etc.
+  filePath       String
+
+  student        Student   @relation(fields: [studentId], references: [id])
+
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+}
+
+// 4. Управління гуртожитком
+model MaintenanceRequest {
+  id             String    @id @default(uuid())
+  roomId         String
+  studentId      String
+  category       String
+  description    String
+  priority       String    // 'low', 'medium', 'high'
+  status         String    @default("new") // 'new', 'in_progress', 'resolved'
+
+  room           Room      @relation(fields: [roomId], references: [id])
+  student        Student   @relation(fields: [studentId], references: [id])
+
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+}
+
+model Violation {
+  id             String    @id @default(uuid())
+  studentId      String
+  description    String
+  date           DateTime
+  severity       String    // 'minor', 'moderate', 'severe'
+
+  student        Student   @relation(fields: [studentId], references: [id])
+
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+}
+
+// 5. Системна таблиця (Користувачі / Коменданти)
+model User {
+  id             String    @id @default(uuid())
+  email          String    @unique
+  passwordHash   String?   // Зробили необов'язковим для OAuth (про це нижче)
+  role           String    @default("commandant") // 'admin', 'commandant', 'guard'
+  fullName       String
+  
+  // Необхідні поля для NextAuth (OAuth 2.0)
+  accounts       Account[]
+
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+}
+
+// Таблиця для збереження зв'язків соціальних мереж (вимога NextAuth)
+model Account {
+  id                String  @id @default(uuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}

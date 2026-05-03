@@ -6,6 +6,7 @@ import {
 } from "@/components/ui/table"
 import { Prisma } from "@prisma/client";
 import { Badge } from "@/components/ui/badge"
+import StudentActions from "@/components/students/student-actions"
 
 interface StudentsPageProps {
     searchParams: Promise<{
@@ -119,7 +120,7 @@ export default async function StudentsPage(props: StudentsPageProps) {
                                             </div>
                                         </TableCell>
                                         <TableCell className="text-right">
-                                            <span className="text-xs text-blue-500 cursor-pointer hover:underline">Деталі</span>
+                                            <StudentActions student={student} />
                                         </TableCell>
                                     </TableRow>
                                 );

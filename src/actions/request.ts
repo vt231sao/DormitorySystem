@@ -70,3 +70,22 @@ export async function createRequest(formData: FormData) {
         return { error: "Не вдалося створити заявку." };
     }
 }
+
+export async function deleteRequest(id: string) {
+    try {
+        const session = await auth();
+
+        if (session?.user?.role === "student") {
+            return { error: "Недостатньо прав для видалення заявки." };
+        }
+
+        await db.maintenanceRequest.delete({
+            where: { id }
+        });
+
+        revalidatePath("/requests");
+        return { success: true };
+    } catch (error) {
+        return { error: "Не вдалося видалити заявку." };
+    }
+}

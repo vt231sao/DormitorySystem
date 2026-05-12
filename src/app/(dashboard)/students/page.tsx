@@ -58,6 +58,14 @@ export default async function StudentsPage(props: StudentsPageProps) {
         }
     });
 
+    const serializedStudents = students.map(student => ({
+        ...student,
+        payments: student.payments.map(p => ({
+            ...p,
+            amount: p.amount.toString()
+        }))
+    }));
+
     return (
         <div className="space-y-6">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -87,14 +95,14 @@ export default async function StudentsPage(props: StudentsPageProps) {
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        {students.length === 0 ? (
+                        {serializedStudents.length === 0 ? (
                             <TableRow>
                                 <TableCell colSpan={6} className="text-center h-24 text-muted-foreground">
                                     За вашим запитом нікого не знайдено.
                                 </TableCell>
                             </TableRow>
                         ) : (
-                            students.map((student) => {
+                            serializedStudents.map((student) => {
                                 const currentRoom = student.placements[0]?.room?.number;
                                 const lastPaymentStatus = student.payments[0]?.status;
                                 const initials = `${student.firstName[0]}${student.lastName[0]}`;

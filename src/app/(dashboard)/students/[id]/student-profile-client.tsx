@@ -99,7 +99,7 @@ export default function StudentProfileClient({ student, canEditEverything }: Pro
                     <Card>
                         <CardHeader>
                             <CardTitle>Контактна інформація</CardTitle>
-                            <CardDescription>Дані для зв'язку з мешканцем.</CardDescription>
+                            <CardDescription>Дані для зв`язку з мешканцем.</CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-4">
                             <form action={handleSave} className="space-y-4">
@@ -109,7 +109,7 @@ export default function StudentProfileClient({ student, canEditEverything }: Pro
                                         <Input name="lastName" defaultValue={student.lastName} required />
                                     </div>
                                     <div className="space-y-2">
-                                        <Label>Ім'я</Label>
+                                        <Label>Ім`я</Label>
                                         <Input name="firstName" defaultValue={student.firstName} required />
                                     </div>
                                     <div className="space-y-2">
@@ -183,12 +183,33 @@ export default function StudentProfileClient({ student, canEditEverything }: Pro
                                 {student.payments.length > 0 ? (
                                     <ul className="space-y-3">
                                         {student.payments.map((payment) => (
-                                            <li key={payment.id} className="flex justify-between items-center border-b pb-2">
-                                                <span className="font-medium">{payment.billingPeriod}</span>
-                                                <span className="font-bold">{payment.amount.toString()} грн</span>
-                                                <Badge variant={payment.status === 'debt' ? "destructive" : "default"}>
-                                                    {payment.status === 'debt' ? "Борг" : "Сплачено"}
-                                                </Badge>
+                                            <li key={payment.id} className="flex flex-col sm:flex-row sm:justify-between sm:items-center border-b pb-3 gap-2">
+                                                <div>
+                                                    <span className="font-medium block">{payment.billingPeriod}</span>
+                                                    <span className="font-bold text-lg">{payment.amount.toString()} грн</span>
+                                                </div>
+                                                <div className="flex items-center gap-2">
+                                                    <Badge variant={payment.status === 'debt' ? "destructive" : "default"}>
+                                                        {payment.status === 'debt' ? "Борг" : "Сплачено"}
+                                                    </Badge>
+                                                    {payment.status === 'debt' && (
+                                                        <Button
+                                                            size="sm"
+                                                            variant="outline"
+                                                            className="text-green-600 hover:text-green-700 hover:bg-green-50"
+                                                            onClick={async () => {
+                                                                startTransition(async () => {
+                                                                    const { payDebt } = await import("@/actions/payment")
+                                                                    const res = await payDebt(payment.id)
+                                                                    if (res?.error) alert(res.error)
+                                                                })
+                                                            }}
+                                                            disabled={isPending}
+                                                        >
+                                                            Оплатити
+                                                        </Button>
+                                                    )}
+                                                </div>
                                             </li>
                                         ))}
                                     </ul>

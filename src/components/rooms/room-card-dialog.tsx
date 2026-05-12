@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { checkInStudent, checkOutStudent,toggleRoomStatus } from "@/actions/placement"
+import { checkInStudent, checkOutStudent, toggleRoomStatus } from "@/actions/placement"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -61,7 +61,7 @@ export default function RoomCardDialog({ room, availableStudents }: RoomCardProp
         statusText = "Повністю зайнята";
     } else {
         cardStyle += " bg-blue-100 dark:bg-blue-900/40 border-blue-200 dark:border-blue-800";
-        statusText = `${availableSpots} вільних місць`;
+         statusText = `${availableSpots}/${room.capacity} вільних місць`;
     }
 
     const handleCheckIn = async () => {
@@ -97,10 +97,10 @@ export default function RoomCardDialog({ room, availableStudents }: RoomCardProp
             <DialogTrigger asChild>
                 <Card className={cardStyle}>
                     <CardContent className="p-4 flex flex-col items-center justify-center text-center h-28 relative">
-            <span className="text-3xl font-bold tracking-tighter text-zinc-800 dark:text-zinc-100 mb-1 flex items-center gap-2">
-              {room.number}
-                {isRepair && <Wrench className="w-5 h-5 text-gray-500" />}
-            </span>
+                        <span className="text-3xl font-bold tracking-tighter text-zinc-800 dark:text-zinc-100 mb-1 flex items-center gap-2">
+                            {room.number}
+                            {isRepair && <Wrench className="w-5 h-5 text-gray-500" />}
+                        </span>
                         <span className="text-sm font-medium text-muted-foreground">{statusText}</span>
                     </CardContent>
                 </Card>
@@ -151,12 +151,12 @@ export default function RoomCardDialog({ room, availableStudents }: RoomCardProp
                                 {currentPlacements.map((placement) => (
                                     <li key={placement.id} className="flex items-center justify-between border rounded-md p-2 px-3 bg-zinc-50 dark:bg-zinc-900">
                                         <div className="flex flex-col">
-                      <span className="font-medium text-sm">
-                        {placement.student.lastName} {placement.student.firstName}
-                      </span>
+                                            <span className="font-medium text-sm">
+                                                {placement.student.lastName} {placement.student.firstName}
+                                            </span>
                                             <span className="text-xs text-muted-foreground">
-                        Група: {placement.student.groupName}
-                      </span>
+                                                Група: {placement.student.groupName}
+                                            </span>
                                         </div>
                                         <Button
                                             variant="destructive" size="sm"

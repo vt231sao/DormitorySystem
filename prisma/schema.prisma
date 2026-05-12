@@ -92,14 +92,16 @@ model Document {
 // 4. Управління гуртожитком
 model MaintenanceRequest {
   id             String    @id @default(uuid())
-  roomId         String
+  title          String
+  roomId         String?
   studentId      String
   category       String
   description    String
-  priority       String    // 'low', 'medium', 'high'
-  status         String    @default("new") // 'new', 'in_progress', 'resolved'
+  priority       String
+  status         String    @default("new")
+  isAnonymous    Boolean   @default(false)
 
-  room           Room      @relation(fields: [roomId], references: [id])
+  room           Room?     @relation(fields: [roomId], references: [id])
   student        Student   @relation(fields: [studentId], references: [id])
 
   createdAt      DateTime  @default(now())

@@ -2,7 +2,7 @@ import { auth } from "@/auth"
 import { db } from "@/lib/db"
 import { redirect } from "next/navigation"
 import KanbanBoard from "@/components/requests/kanban-board"
-import { Button } from "@/components/ui/button"
+import CreateRequestDialog from "@/components/requests/create-request-dialog"
 
 export default async function RequestsPage() {
     const session = await auth();
@@ -46,11 +46,7 @@ export default async function RequestsPage() {
                     </p>
                 </div>
 
-                {isStudent && (
-                    <Button className="bg-blue-600 hover:bg-blue-700">
-                        + Створити заявку
-                    </Button>
-                )}
+                {isStudent && <CreateRequestDialog />}
             </div>
 
             <div className="flex-1 overflow-hidden">

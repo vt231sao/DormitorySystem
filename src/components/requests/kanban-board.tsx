@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useOptimistic } from "react"
 import { updateRequestStatus, deleteRequest } from "@/actions/request"
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -38,12 +38,20 @@ interface KanbanBoardProps {
 }
 
 export default function KanbanBoard({ initialRequests, isStudent }: KanbanBoardProps) {
-    const [requests, setRequests] = useState<RequestData[]>(initialRequests);
     const [loadingId, setLoadingId] = useState<string | null>(null);
 
-    useEffect(() => {
-        setRequests(initialRequests);
-    }, [initialRequests]);
+    const [optimisticRequests, dispatchOptimistic] = useOptimistic(
+        initialRequests,
+        (state, action: { type: string; id: string; status?: string }) => {
+            if (action.type === "update") {
+                return state.map(req => req.id === action.id ? { ...req, status: action.status! } : req);
+            }
+            if (action.type === "delete") {
+                return state.filter(req => req.id !== action.id);
+            }
+            return state;
+        }
+    );
 
     const columns = [
         { id: "new", title: "Нові", color: "bg-blue-100 border-blue-200 text-blue-800" },
@@ -53,19 +61,26 @@ export default function KanbanBoard({ initialRequests, isStudent }: KanbanBoardP
 
     const handleStatusChange = async (requestId: string, newStatus: string) => {
         setLoadingId(requestId);
-        setRequests(prev => prev.map(req => req.id === requestId ? { ...req, status: newStatus } : req));
+        dispatchOptimistic({ type: "update", id: requestId, status: newStatus });
+
         const result = await updateRequestStatus(requestId, newStatus);
-        if (result.error) setRequests(initialRequests);
+        if (result.error) {
+            alert(result.error);
+        }
+
         setLoadingId(null);
     };
 
     const handleDelete = async (requestId: string) => {
         setLoadingId(requestId);
+        dispatchOptimistic({ type: "delete", id: requestId });
+
         const result = await deleteRequest(requestId);
         if (result.error) {
             alert(result.error);
-            setLoadingId(null);
         }
+
+        setLoadingId(null);
     };
 
     const getCategoryBadge = (category: string) => {
@@ -89,7 +104,7 @@ export default function KanbanBoard({ initialRequests, isStudent }: KanbanBoardP
     return (
         <div className="flex flex-col md:flex-row gap-6 items-start overflow-x-auto h-full pb-4">
             {columns.map(column => {
-                const columnRequests = requests.filter(req => req.status === column.id);
+                const columnRequests = optimisticRequests.filter(req => req.status === column.id);
 
                 return (
                     <div key={column.id} className="flex flex-col flex-1 min-w-[320px] bg-zinc-50 dark:bg-zinc-900/50 p-4 rounded-xl border h-full max-h-full overflow-hidden">

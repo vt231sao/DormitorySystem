@@ -9,7 +9,7 @@ export const proxy = auth((req) => {
     const user = req.auth?.user;
     const pathname = req.nextUrl.pathname;
 
-    console.log(`[PROXY] Маршрут: ${pathname} | Авторизований: ${isLoggedIn}`);
+    console.log(`[PROXY] Маршрут: ${pathname} | Авторизований: ${isLoggedIn} | Роль: ${user?.role}`);
 
     const isPublicRoute = pathname.startsWith("/auth") || pathname.startsWith("/api/auth");
     const isSetupPasswordRoute = pathname === "/auth/setup-password";
@@ -27,7 +27,21 @@ export const proxy = auth((req) => {
 
         if (isPublicRoute && user?.hasPassword) {
             console.log(`[PROXY ACTION] Вже в системі. Редірект в панель керування.`);
+            if(user.role === "student") {
+                return NextResponse.redirect(new URL("/profile", req.nextUrl));
+            }
             return NextResponse.redirect(new URL("/dashboard", req.nextUrl));
+        }
+        if (user?.role === "student") {
+            const isTryingToAccessAdminPages =
+                pathname === "/dashboard" ||
+                pathname === "/students" ||
+                pathname.startsWith("/rooms");
+
+            if (isTryingToAccessAdminPages) {
+                console.log(`[PROXY ACTION] Студент лізе в адмінку. Редірект на /profile.`);
+                return NextResponse.redirect(new URL("/profile", req.nextUrl));
+            }
         }
     }
 

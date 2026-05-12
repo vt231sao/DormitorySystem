@@ -4,9 +4,11 @@ import StudentFilters from "@/components/students/student-filters"
 import {
     Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table"
-import { Prisma } from "@prisma/client";
+import { Prisma } from "@prisma/client"
 import { Badge } from "@/components/ui/badge"
 import StudentActions from "@/components/students/student-actions"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import Link from "next/link"
 
 interface StudentsPageProps {
     searchParams: Promise<{
@@ -45,6 +47,13 @@ export default async function StudentsPage(props: StudentsPageProps) {
             payments: {
                 orderBy: { dueDate: 'desc' },
                 take: 1
+            },
+            documents: {
+                select: { id: true }
+            },
+            maintenanceRequests: {
+                where: { status: { not: "resolved" } },
+                select: { id: true, status: true }
             }
         }
     });
@@ -67,13 +76,13 @@ export default async function StudentsPage(props: StudentsPageProps) {
 
             <div className="border rounded-md bg-white dark:bg-zinc-900 shadow-sm">
                 <Table>
-                  <TableHeader>
+                    <TableHeader>
                         <TableRow>
                             <TableHead>ПІБ</TableHead>
-                            <TableHead>Група</TableHead>
                             <TableHead>Кімната</TableHead>
                             <TableHead>Оплата</TableHead>
-                            <TableHead>Контакти</TableHead>
+                            <TableHead>Документи</TableHead>
+                            <TableHead>Заявки</TableHead>
                             <TableHead className="text-right">Дії</TableHead>
                         </TableRow>
                     </TableHeader>
@@ -88,13 +97,30 @@ export default async function StudentsPage(props: StudentsPageProps) {
                             students.map((student) => {
                                 const currentRoom = student.placements[0]?.room?.number;
                                 const lastPaymentStatus = student.payments[0]?.status;
+                                const initials = `${student.firstName[0]}${student.lastName[0]}`;
+                                const activeRequestsCount = student.maintenanceRequests.length;
+                                const docsCount = student.documents.length;
 
                                 return (
                                     <TableRow key={student.id}>
-                                        <TableCell className="font-medium">
-                                            {student.lastName} {student.firstName} {student.patronymic || ""}
+                                        <TableCell>
+                                            <Link href={`/students/${student.id}`} className="flex items-center gap-3 group">
+                                                <Avatar className="h-9 w-9 border transition-colors group-hover:border-blue-500">
+                                                    <AvatarImage src={student.photoUrl || ""} alt="Avatar" />
+                                                    <AvatarFallback className="bg-blue-100 text-blue-700 text-xs">
+                                                        {initials}
+                                                    </AvatarFallback>
+                                                </Avatar>
+                                                <div className="flex flex-col">
+                                                    <span className="font-medium group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                                                        {student.lastName} {student.firstName}
+                                                    </span>
+                                                    <span className="text-xs text-muted-foreground">
+                                                        {student.groupName}
+                                                    </span>
+                                                </div>
+                                            </Link>
                                         </TableCell>
-                                        <TableCell>{student.groupName}</TableCell>
                                         <TableCell>
                                             {currentRoom ? (
                                                 <span className="font-semibold">{currentRoom}</span>
@@ -104,7 +130,7 @@ export default async function StudentsPage(props: StudentsPageProps) {
                                         </TableCell>
                                         <TableCell>
                                             {!lastPaymentStatus ? (
-                                                <span className="text-muted-foreground text-sm italic">Немає даних</span>
+                                                <span className="text-muted-foreground text-sm italic">Немає</span>
                                             ) : lastPaymentStatus === 'debt' ? (
                                                 <Badge variant="destructive">Борг</Badge>
                                             ) : lastPaymentStatus === 'paid' ? (
@@ -114,10 +140,18 @@ export default async function StudentsPage(props: StudentsPageProps) {
                                             )}
                                         </TableCell>
                                         <TableCell>
-                                            <div className="flex flex-col text-sm">
-                                                {student.phone && <span>{student.phone}</span>}
-                                                {student.email && <span className="text-muted-foreground">{student.email}</span>}
-                                            </div>
+                                            <span className="text-sm">
+                                                {docsCount > 0 ? `${docsCount} шт.` : <span className="text-muted-foreground italic">0</span>}
+                                            </span>
+                                        </TableCell>
+                                        <TableCell>
+                                            {activeRequestsCount > 0 ? (
+                                                <Badge variant="outline" className="text-amber-600 border-amber-600 bg-amber-50 dark:bg-amber-950">
+                                                    {activeRequestsCount} активних
+                                                </Badge>
+                                            ) : (
+                                                <span className="text-muted-foreground text-sm">Немає</span>
+                                            )}
                                         </TableCell>
                                         <TableCell className="text-right">
                                             <StudentActions student={student} />

@@ -69,7 +69,7 @@ export default function StudentActions({ student }: StudentActionsProps) {
                                 <Input id="lastName" name="lastName" defaultValue={student.lastName} required />
                             </div>
                             <div className="space-y-2">
-                                <Label htmlFor="firstName">Ім'я *</Label>
+                                <Label htmlFor="firstName">Ім`я *</Label>
                                 <Input id="firstName" name="firstName" defaultValue={student.firstName} required />
                             </div>
                         </div>

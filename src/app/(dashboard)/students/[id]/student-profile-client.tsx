@@ -1,12 +1,17 @@
 "use client"
 
+import { useTransition } from "react"
+import { updateStudent } from "@/actions/student"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar" // Обов'язково встанови: npx shadcn-ui@latest add avatar
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Trash2 } from "lucide-react"
 
 export interface PaymentData {
     id: string;
@@ -50,18 +55,35 @@ interface ProfileClientProps {
 }
 
 export default function StudentProfileClient({ student, canEditEverything }: ProfileClientProps) {
-    const currentPlacement = student.placements.find((p) => p.isCurrent);
-    const currentRoom = currentPlacement?.room;
+    const [isPending, startTransition] = useTransition()
 
-    const initials = `${student.firstName?.[0] || ""}${student.lastName?.[0] || ""}`;
+    const currentPlacement = student.placements.find((p) => p.isCurrent)
+    const currentRoom = currentPlacement?.room
+    const historyPlacements = student.placements.filter((p) => !p.isCurrent)
+    const initials = `${student.firstName?.[0] || ""}${student.lastName?.[0] || ""}`
+
+    async function handleSave(formData: FormData) {
+        startTransition(async () => {
+            const res = await updateStudent(student.id, formData)
+            if (res?.error) alert(res.error)
+        })
+    }
 
     return (
         <div className="space-y-8">
             <div className="flex items-center gap-6 p-6 bg-white dark:bg-zinc-900 rounded-xl border shadow-sm">
-                <Avatar className="w-24 h-24 border-2 border-zinc-100">
-                    <AvatarImage src={student.photoUrl || ""} alt="Avatar" />
-                    <AvatarFallback className="text-2xl bg-blue-100 text-blue-700">{initials}</AvatarFallback>
-                </Avatar>
+                <div className="relative group cursor-pointer">
+                    <Label htmlFor="avatar-upload" className="cursor-pointer">
+                        <Avatar className="w-24 h-24 border-2 border-zinc-100 group-hover:opacity-80 transition-opacity">
+                            <AvatarImage src={student.photoUrl || ""} alt="Avatar" />
+                            <AvatarFallback className="text-2xl bg-blue-100 text-blue-700">{initials}</AvatarFallback>
+                        </Avatar>
+                        <div className="absolute inset-0 flex items-center justify-center bg-black/40 text-white text-xs font-medium opacity-0 group-hover:opacity-100 transition-opacity rounded-full">
+                            Змінити
+                        </div>
+                    </Label>
+                    <Input id="avatar-upload" type="file" accept="image/*" className="hidden" />
+                </div>
                 <div>
                     <h2 className="text-2xl font-bold">{student.lastName} {student.firstName} {student.patronymic || ""}</h2>
                     <p className="text-muted-foreground">{student.groupName} | {student.email}</p>
@@ -83,30 +105,32 @@ export default function StudentProfileClient({ student, canEditEverything }: Pro
                             <CardDescription>Дані для зв`язку з мешканцем.</CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-4">
-                            <form className="space-y-4">
+                            <form action={handleSave} className="space-y-4">
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <div className="space-y-2">
                                         <Label>Прізвище</Label>
-                                        <Input defaultValue={student.lastName} disabled={!canEditEverything} />
+                                        <Input name="lastName" defaultValue={student.lastName} required />
                                     </div>
                                     <div className="space-y-2">
                                         <Label>Ім`я</Label>
-                                        <Input defaultValue={student.firstName} disabled={!canEditEverything} />
+                                        <Input name="firstName" defaultValue={student.firstName} required />
                                     </div>
                                     <div className="space-y-2">
                                         <Label>Академічна група</Label>
-                                        <Input defaultValue={student.groupName} disabled={!canEditEverything} />
+                                        <Input name="groupName" defaultValue={student.groupName} disabled={!canEditEverything} required />
                                     </div>
                                     <div className="space-y-2">
                                         <Label>Email (Логін)</Label>
-                                        <Input defaultValue={student.email || ""} disabled />
+                                        <Input name="email" defaultValue={student.email || ""} disabled={!canEditEverything} />
                                     </div>
                                     <div className="space-y-2">
                                         <Label>Номер телефону</Label>
-                                        <Input defaultValue={student.phone || ""} />
+                                        <Input name="phone" defaultValue={student.phone || ""} />
                                     </div>
                                 </div>
-                                <Button type="button">Зберегти зміни</Button>
+                                <Button type="submit" disabled={isPending}>
+                                    {isPending ? "Збереження..." : "Зберегти зміни"}
+                                </Button>
                             </form>
                         </CardContent>
                     </Card>
@@ -115,20 +139,39 @@ export default function StudentProfileClient({ student, canEditEverything }: Pro
                 <TabsContent value="living">
                     <Card>
                         <CardHeader>
-                            <CardTitle>Поточне місце проживання</CardTitle>
+                            <CardTitle>Проживання</CardTitle>
                         </CardHeader>
                         <CardContent>
-                            {currentRoom ? (
-                                <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg flex justify-between items-center">
-                                    <div>
-                                        <p className="text-2xl font-bold">Кімната {currentRoom.number}</p>
-                                        <p className="text-sm text-muted-foreground">Поверх: {currentRoom.floor}</p>
+                            <div className="mb-8">
+                                <h4 className="font-semibold mb-4">Поточне місце</h4>
+                                {currentRoom ? (
+                                    <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg flex justify-between items-center">
+                                        <div>
+                                            <p className="text-2xl font-bold">Кімната {currentRoom.number}</p>
+                                            <p className="text-sm text-muted-foreground">Поверх: {currentRoom.floor}</p>
+                                        </div>
+                                        <Badge className="bg-green-600 hover:bg-green-700">Активно</Badge>
                                     </div>
-                                    <Badge className="bg-green-600 hover:bg-green-700">Активно</Badge>
-                                </div>
-                            ) : (
-                                <p className="text-muted-foreground italic">Студента наразі не поселено в жодну кімнату.</p>
-                            )}
+                                ) : (
+                                    <p className="text-muted-foreground italic">Студента наразі не поселено.</p>
+                                )}
+                            </div>
+
+                            <div>
+                                <h4 className="font-semibold mb-4">Історія поселень</h4>
+                                {historyPlacements.length > 0 ? (
+                                    <ul className="space-y-2">
+                                        {historyPlacements.map(placement => (
+                                            <li key={placement.id} className="p-3 border rounded-md text-sm flex justify-between items-center">
+                                                <span>Кімната {placement.room?.number || "Невідомо"}</span>
+                                                <Badge variant="secondary">Архів</Badge>
+                                            </li>
+                                        ))}
+                                    </ul>
+                                ) : (
+                                    <p className="text-muted-foreground text-sm italic">Історія поселень відсутня.</p>
+                                )}
+                            </div>
                         </CardContent>
                     </Card>
                 </TabsContent>
@@ -143,12 +186,33 @@ export default function StudentProfileClient({ student, canEditEverything }: Pro
                                 {student.payments.length > 0 ? (
                                     <ul className="space-y-3">
                                         {student.payments.map((payment) => (
-                                            <li key={payment.id} className="flex justify-between items-center border-b pb-2">
-                                                <span className="font-medium">{payment.billingPeriod}</span>
-                                                <span className="font-bold">{payment.amount.toString()} грн</span>
-                                                <Badge variant={payment.status === 'debt' ? "destructive" : "default"}>
-                                                    {payment.status === 'debt' ? "Борг" : "Сплачено"}
-                                                </Badge>
+                                            <li key={payment.id} className="flex flex-col sm:flex-row sm:justify-between sm:items-center border-b pb-3 gap-2">
+                                                <div>
+                                                    <span className="font-medium block">{payment.billingPeriod}</span>
+                                                    <span className="font-bold text-lg">{payment.amount.toString()} грн</span>
+                                                </div>
+                                                <div className="flex items-center gap-2">
+                                                    <Badge variant={payment.status === 'debt' ? "destructive" : "default"}>
+                                                        {payment.status === 'debt' ? "Борг" : "Сплачено"}
+                                                    </Badge>
+                                                    {payment.status === 'debt' && (
+                                                        <Button
+                                                            size="sm"
+                                                            variant="outline"
+                                                            className="text-green-600 hover:text-green-700 hover:bg-green-50"
+                                                            onClick={async () => {
+                                                                startTransition(async () => {
+                                                                    const { payDebt } = await import("@/actions/payment")
+                                                                    const res = await payDebt(payment.id)
+                                                                    if (res?.error) alert(res.error)
+                                                                })
+                                                            }}
+                                                            disabled={isPending}
+                                                        >
+                                                            Оплатити
+                                                        </Button>
+                                                    )}
+                                                </div>
                                             </li>
                                         ))}
                                     </ul>
@@ -163,28 +227,93 @@ export default function StudentProfileClient({ student, canEditEverything }: Pro
                 <TabsContent value="documents">
                     <Card>
                         <CardHeader>
-                            <CardTitle>Документи</CardTitle>
-                            <CardDescription>Скан-копії та довідки.</CardDescription>
+                            <CardTitle>Реєстр документів</CardTitle>
+                            <CardDescription>Облік оригіналів та копій документів мешканця.</CardDescription>
                         </CardHeader>
                         <CardContent>
                             {student.documents?.length > 0 ? (
-                                <ul className="space-y-2 mb-4">
+                                <ul className="space-y-3 mb-6">
                                     {student.documents.map(doc => (
-                                        <li key={doc.id} className="flex justify-between items-center p-3 border rounded-md">
-                                            <span className="font-medium">{doc.documentType}</span>
-                                            <Button variant="outline" size="sm">Завантажити</Button>
+                                        <li key={doc.id} className="flex flex-col sm:flex-row sm:justify-between sm:items-center p-4 border rounded-lg bg-zinc-50 dark:bg-zinc-900/50">
+                                            <div>
+                                                <span className="font-semibold block">{doc.documentType}</span>
+                                                <span className="text-sm text-muted-foreground">Локація/Нотатки: {doc.filePath}</span>
+                                            </div>
+                                            {canEditEverything && (
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    className="text-red-600 hover:text-red-700 hover:bg-red-50 mt-2 sm:mt-0"
+                                                    onClick={async () => {
+                                                        startTransition(async () => {
+                                                            const { deleteDocumentRecord } = await import("@/actions/document")
+                                                            const res = await deleteDocumentRecord(doc.id, student.id)
+                                                            if (res?.error) alert(res.error)
+                                                        })
+                                                    }}
+                                                    disabled={isPending}
+                                                >
+                                                    <Trash2 className="w-4 h-4 mr-1" /> Видалити
+                                                </Button>
+                                            )}
                                         </li>
                                     ))}
                                 </ul>
                             ) : (
-                                <p className="text-muted-foreground mb-4">Документів ще не завантажено.</p>
+                                <p className="text-muted-foreground mb-6">Документів ще не додано.</p>
                             )}
-                            <Button className="w-full md:w-auto">Завантажити новий документ</Button>
+
+                            {canEditEverything && (
+                                <Dialog>
+                                    <DialogTrigger asChild>
+                                        <Button disabled={isPending}>+ Додати запис про документ</Button>
+                                    </DialogTrigger>
+                                    <DialogContent>
+                                        <DialogHeader>
+                                            <DialogTitle>Новий документ</DialogTitle>
+                                        </DialogHeader>
+                                        <form action={async (formData) => {
+                                            startTransition(async () => {
+                                                const { addDocumentRecord } = await import("@/actions/document")
+                                                const res = await addDocumentRecord(formData)
+                                                if (res?.error) alert(res.error)
+                                            })
+                                        }} className="space-y-4">
+                                            <input type="hidden" name="studentId" value={student.id} />
+
+                                            <div className="space-y-2">
+                                                <Label>Тип документа</Label>
+                                                <Select name="documentType" required>
+                                                    <SelectTrigger>
+                                                        <SelectValue placeholder="Оберіть тип" />
+                                                    </SelectTrigger>
+                                                    <SelectContent>
+                                                        <SelectItem value="Паспорт / ID Картка">Паспорт / ID Картка</SelectItem>
+                                                        <SelectItem value="ІПН (РНОКПП)">ІПН (РНОКПП)</SelectItem>
+                                                        <SelectItem value="Медична довідка">Медична довідка</SelectItem>
+                                                        <SelectItem value="Договір на проживання">Договір на проживання</SelectItem>
+                                                        <SelectItem value="Пільговий документ">Пільговий документ</SelectItem>
+                                                    </SelectContent>
+                                                </Select>
+                                            </div>
+
+                                            <div className="space-y-2">
+                                                <Label>Місцезнаходження / Нотатки</Label>
+                                                <Input name="filePath" placeholder="Наприклад: Оригінал у папці №4" required />
+                                            </div>
+
+                                            <Button type="submit" className="w-full" disabled={isPending}>
+                                                {isPending ? "Збереження..." : "Зберегти"}
+                                            </Button>
+                                        </form>
+                                    </DialogContent>
+                                </Dialog>
+                            )}
                         </CardContent>
                     </Card>
                 </TabsContent>
 
             </Tabs>
         </div>
-    );
+    )
 }

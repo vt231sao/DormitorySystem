@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useOptimistic } from "react"
+import { useState, useOptimistic, startTransition } from "react"
 import { updateRequestStatus, deleteRequest } from "@/actions/request"
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -61,7 +61,10 @@ export default function KanbanBoard({ initialRequests, isStudent }: KanbanBoardP
 
     const handleStatusChange = async (requestId: string, newStatus: string) => {
         setLoadingId(requestId);
-        dispatchOptimistic({ type: "update", id: requestId, status: newStatus });
+
+        startTransition(() => {
+            dispatchOptimistic({ type: "update", id: requestId, status: newStatus });
+        });
 
         const result = await updateRequestStatus(requestId, newStatus);
         if (result.error) {
@@ -73,7 +76,10 @@ export default function KanbanBoard({ initialRequests, isStudent }: KanbanBoardP
 
     const handleDelete = async (requestId: string) => {
         setLoadingId(requestId);
-        dispatchOptimistic({ type: "delete", id: requestId });
+
+        startTransition(() => {
+            dispatchOptimistic({ type: "delete", id: requestId });
+        });
 
         const result = await deleteRequest(requestId);
         if (result.error) {

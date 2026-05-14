@@ -52,7 +52,10 @@ export default async function StudentsPage(props: StudentsPageProps) {
                 select: { id: true }
             },
             maintenanceRequests: {
-                where: { status: { not: "resolved" } },
+                where: {
+                    status: { not: "resolved" },
+                    isAnonymous: false
+                },
                 select: { id: true, status: true }
             }
         }

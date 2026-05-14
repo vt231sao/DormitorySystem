@@ -5,7 +5,7 @@ import { db } from "@/lib/db"
 import { auth } from "@/auth"
 import bcrypt from "bcryptjs"
 import { AuthError } from "next-auth"
-import { redirect } from "next/navigation"
+import { signOut } from "@/auth";
 
 export async function loginWithGoogle() {
     await signIn("google", {redirectTo: "/dashboard"});
@@ -51,7 +51,7 @@ export async function setupNewPassword(prevState: string | undefined, formData: 
         data: {passwordHash: hashedPassword},
     });
 
-    redirect("/dashboard");
+    await signOut({ redirectTo: "/auth/login" })
 }
 
 

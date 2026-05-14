@@ -37,7 +37,7 @@ export default async function DashboardLayout({
                             <Button variant="ghost" className="justify-start w-full" asChild>
                                 <Link href="/dashboard"><Home className="mr-2 h-4 w-4" /> Головна</Link>
                             </Button>
-                            <Button variant="secondary" className="justify-start w-full" asChild>
+                            <Button variant="ghost" className="justify-start w-full" asChild>
                                 <Link href="/students"><Users className="mr-2 h-4 w-4" /> Студенти</Link>
                             </Button>
                             <Button variant="ghost" className="justify-start w-full" asChild>

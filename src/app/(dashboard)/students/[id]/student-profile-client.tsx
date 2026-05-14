@@ -9,6 +9,9 @@ import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Trash2 } from "lucide-react"
 
 export interface PaymentData {
     id: string;
@@ -224,26 +227,88 @@ export default function StudentProfileClient({ student, canEditEverything }: Pro
                 <TabsContent value="documents">
                     <Card>
                         <CardHeader>
-                            <CardTitle>Документи</CardTitle>
-                            <CardDescription>Скан-копії та довідки.</CardDescription>
+                            <CardTitle>Реєстр документів</CardTitle>
+                            <CardDescription>Облік оригіналів та копій документів мешканця.</CardDescription>
                         </CardHeader>
                         <CardContent>
                             {student.documents?.length > 0 ? (
-                                <ul className="space-y-2 mb-4">
+                                <ul className="space-y-3 mb-6">
                                     {student.documents.map(doc => (
-                                        <li key={doc.id} className="flex justify-between items-center p-3 border rounded-md">
-                                            <span className="font-medium">{doc.documentType}</span>
-                                            <Button variant="outline" size="sm">Завантажити</Button>
+                                        <li key={doc.id} className="flex flex-col sm:flex-row sm:justify-between sm:items-center p-4 border rounded-lg bg-zinc-50 dark:bg-zinc-900/50">
+                                            <div>
+                                                <span className="font-semibold block">{doc.documentType}</span>
+                                                <span className="text-sm text-muted-foreground">Локація/Нотатки: {doc.filePath}</span>
+                                            </div>
+                                            {canEditEverything && (
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    className="text-red-600 hover:text-red-700 hover:bg-red-50 mt-2 sm:mt-0"
+                                                    onClick={async () => {
+                                                        startTransition(async () => {
+                                                            const { deleteDocumentRecord } = await import("@/actions/document")
+                                                            const res = await deleteDocumentRecord(doc.id, student.id)
+                                                            if (res?.error) alert(res.error)
+                                                        })
+                                                    }}
+                                                    disabled={isPending}
+                                                >
+                                                    <Trash2 className="w-4 h-4 mr-1" /> Видалити
+                                                </Button>
+                                            )}
                                         </li>
                                     ))}
                                 </ul>
                             ) : (
-                                <p className="text-muted-foreground mb-4">Документів ще не завантажено.</p>
+                                <p className="text-muted-foreground mb-6">Документів ще не додано.</p>
                             )}
-                            <Label htmlFor="doc-upload" className="cursor-pointer w-full md:w-auto inline-flex h-10 items-center justify-center rounded-md bg-zinc-900 px-4 py-2 text-sm font-medium text-zinc-50 hover:bg-zinc-900/90 dark:bg-zinc-50 dark:text-zinc-900 dark:hover:bg-zinc-50/90">
-                                Завантажити новий документ
-                            </Label>
-                            <Input id="doc-upload" type="file" className="hidden" />
+
+                            {canEditEverything && (
+                                <Dialog>
+                                    <DialogTrigger asChild>
+                                        <Button disabled={isPending}>+ Додати запис про документ</Button>
+                                    </DialogTrigger>
+                                    <DialogContent>
+                                        <DialogHeader>
+                                            <DialogTitle>Новий документ</DialogTitle>
+                                        </DialogHeader>
+                                        <form action={async (formData) => {
+                                            startTransition(async () => {
+                                                const { addDocumentRecord } = await import("@/actions/document")
+                                                const res = await addDocumentRecord(formData)
+                                                if (res?.error) alert(res.error)
+                                            })
+                                        }} className="space-y-4">
+                                            <input type="hidden" name="studentId" value={student.id} />
+
+                                            <div className="space-y-2">
+                                                <Label>Тип документа</Label>
+                                                <Select name="documentType" required>
+                                                    <SelectTrigger>
+                                                        <SelectValue placeholder="Оберіть тип" />
+                                                    </SelectTrigger>
+                                                    <SelectContent>
+                                                        <SelectItem value="Паспорт / ID Картка">Паспорт / ID Картка</SelectItem>
+                                                        <SelectItem value="ІПН (РНОКПП)">ІПН (РНОКПП)</SelectItem>
+                                                        <SelectItem value="Медична довідка">Медична довідка</SelectItem>
+                                                        <SelectItem value="Договір на проживання">Договір на проживання</SelectItem>
+                                                        <SelectItem value="Пільговий документ">Пільговий документ</SelectItem>
+                                                    </SelectContent>
+                                                </Select>
+                                            </div>
+
+                                            <div className="space-y-2">
+                                                <Label>Місцезнаходження / Нотатки</Label>
+                                                <Input name="filePath" placeholder="Наприклад: Оригінал у папці №4" required />
+                                            </div>
+
+                                            <Button type="submit" className="w-full" disabled={isPending}>
+                                                {isPending ? "Збереження..." : "Зберегти"}
+                                            </Button>
+                                        </form>
+                                    </DialogContent>
+                                </Dialog>
+                            )}
                         </CardContent>
                     </Card>
                 </TabsContent>
